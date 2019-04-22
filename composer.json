@@ -1,0 +1,8 @@
+{
+    "name": "TBDB",
+    "description": "Tankbar PDO database wrapper",
+    "require-dev": {
+        "dealerdirect/phpcodesniffer-composer-installer": "^0.5.0",
+        "squizlabs/php_codesniffer": "^3.4"
+    }
+}
