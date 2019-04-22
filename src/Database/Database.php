@@ -86,6 +86,12 @@ class Database
     const DBTYPE_JSON       = 500;
     const DBTYPE_BOOL       = 600;
 
+    const ERR_INVALID_OPTION = 'Invalid option provided.';
+    const ERR_UNEXPECTED_ARG =
+        'Substitutions must be used in conjunction with a PDOStatement. Did you forget a call to Database::prepare()?';
+    const ERR_INVALID_BOOL_CAST = 'Cannot convert %s to boolean';
+    const ERR_INVALID_SERIALIZED_CAST = 'Cannot unserialize %s';
+    const ERR_INVALID_JSON_CAST = 'Cannot decode %s';
     /**
      * Initializes the Database class
      *
@@ -120,7 +126,7 @@ class Database
 
         foreach ($options as $option_key => $option_value) {
             if (!isset($accepted_options[ $option_key ])) {
-                throw new InvalidOptionException('Invalid option provided.');
+                throw new InvalidOptionException(self::ERR_INVALID_OPTION);
             }
 
             $accepted_option = $accepted_options[ $option_key ];
@@ -191,7 +197,7 @@ class Database
             }
         } else {
             if (! is_null($substitutions)) {
-                throw new ArgumentException('Substitutions must be used in conjunction with a PDOStatement. Did you forget a call to Database::prepare()?', 1000, \E_USER_WARNING);
+                throw new ArgumentException(self::ERR_UNEXPECTED_ARG, 1000);
             }
 
             $statement = $this->connection->query($query);
@@ -222,10 +228,7 @@ class Database
             }
         } else {
             if (! is_null($substitutions)) {
-                throw new ArgumentException(
-                    'Substitutions must be used in conjunction with a PDOStatement. Did you forget a call to Database::prepare()?',
-                    1000
-                );
+                throw new ArgumentException(self::ERR_UNEXPECTED_ARG, 1000);
             }
 
             $statement = $this->connection->query($query);
@@ -246,7 +249,7 @@ class Database
                     $converted_result = filter_var($result, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
                     if (is_null($converted_result)) {
                         throw new InvalidConversionException(
-                            sprintf('Cannot convert %s to boolean', $result),
+                            sprintf(self::ERR_INVALID_BOOL_CAST, $result),
                             self::DBTYPE_BOOL
                         );
                     }
@@ -260,7 +263,7 @@ class Database
                     $unserialized_result = @unserialize($result);
                     if (false === $unserialized_result) {
                         throw new InvalidConversionException(
-                            sprintf('Cannot unserialize %s', $result),
+                            sprintf(self::ERR_INVALID_SERIALIZED_CAST, $result),
                             self::DBTYPE_SERIALIZED
                         );
                     }
@@ -270,7 +273,7 @@ class Database
                     $decoded_result = json_decode($result);
                     if (is_null($decoded_result)) {
                         throw new InvalidConversionException(
-                            sprintf('Cannot decode %s', $result),
+                            sprintf(self::ERR_INVALID_JSON_CAST, $result),
                             self::DBTYPE_JSON
                         );
                     }
@@ -288,7 +291,8 @@ class Database
      * Inserts data and returns the IDs inserted.
      *
      * @param string  $query The query to execute.
-     * @param Array   $substitutions A list of substitutions. If $multiple is TRUE $substitutions needs to be a two-dimensional array with substitutions.
+     * @param Array   $substitutions A list of substitutions.
+     *                If $multiple is TRUE $substitutions needs to be a two-dimensional array with substitutions.
      * @param boolean $multiple If there's several inserts being made.
      * @throws \Exception The exception thrown when failing to insert multiple rows.
      */
