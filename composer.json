@@ -1,6 +1,7 @@
 {
     "name": "tankbar/tankbar",
     "description": "Tankbar PDO database wrapper",
+    "license": ["MIT"],
     "authors": [
         {
             "name": "Rasmus Milesson",
