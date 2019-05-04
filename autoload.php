@@ -2,7 +2,7 @@
 
 spl_autoload_register(
     function ($className) {
-        if (strpos($className, 'TBDB') === 0) {
+        if (strpos($className, 'Tankbar') === 0) {
             $className = substr($className, 5, strlen($className));
         }
 

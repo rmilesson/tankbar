@@ -2,10 +2,10 @@
 /**
  * Invalid option exception
  *
- * @package Database
+ * @package Tankbar\Exceptions
  */
 
-namespace TBDB\Database\Exceptions;
+namespace Tankbar\Exceptions;
 
 use Exception;
 

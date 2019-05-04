@@ -2,14 +2,18 @@
 /**
  * Database class
  *
- * @package Database
+ * @package Tankbar\Database
  */
 
-namespace TBDB\Database;
+namespace Tankbar\Database;
 
-use TBDB\Exceptions\InvalidConversionException;
-use TBDB\Exceptions\InvalidOptionException;
-use TBDB\Exceptions\ArgumentException;
+use Exception;
+use PDO;
+use PDOStatement;
+use Tankbar\Exceptions\InvalidConversionException;
+use Tankbar\Exceptions\InvalidOptionException;
+use Tankbar\Exceptions\ArgumentException;
+use Tankbar\Exceptions\DatabaseException;
 
 /**
  * Database
@@ -92,10 +96,11 @@ class Database
     const ERR_INVALID_BOOL_CAST = 'Cannot convert %s to boolean';
     const ERR_INVALID_SERIALIZED_CAST = 'Cannot unserialize %s';
     const ERR_INVALID_JSON_CAST = 'Cannot decode %s';
+
     /**
      * Initializes the Database class
      *
-     * @param Array $options The options.
+     * @param array $options The options.
      * @throws InvalidOptionException Thrown when encountering an invalid or unaccepted option.
      */
     public static function init($options)
@@ -128,8 +133,6 @@ class Database
             if (!isset($accepted_options[ $option_key ])) {
                 throw new InvalidOptionException(self::ERR_INVALID_OPTION);
             }
-
-            $accepted_option = $accepted_options[ $option_key ];
 
             self::$$option_key = $option_value;
         }
@@ -168,14 +171,15 @@ class Database
      */
     private function __construct($driver, $host, $port, $dbname, $charset, $user, $password)
     {
-        $this->connection = new \PDO("$driver:host=$host:$port;dbname=$dbname;charset=$charset", $user, $password);
+        $this->connection = new PDO("$driver:host=$host:$port;dbname=$dbname;charset=$charset", $user, $password);
     }
 
     /**
      * Prepares an SQL query for use
      *
      * @param string $query The query to prepare.
-     * @param Array  $driver_options A list of driver options to pass along.
+     * @param array  $driver_options A list of driver options to pass along.
+     * @return PDOStatement
      */
     public function prepare($query, $driver_options = array())
     {
@@ -185,12 +189,15 @@ class Database
     /**
      * Returns results as an object array.
      *
-     * @param string|\PDOStatement $query The query to execute.
-     * @param Array                $substitutions A list of substitutions to pass along to a prepared statement.
+     * @param string|PDOStatement $query The query to execute.
+     * @param array                $substitutions A list of substitutions to pass along to a prepared statement.
+     * @throws ArgumentException
+     * @throws DatabaseException
+     * @return array
      */
     public function getResults($query, $substitutions = null)
     {
-        if ($query instanceof \PDOStatement) {
+        if ($query instanceof PDOStatement) {
             $statement = $query;
             if (!is_null($substitutions)) {
                 $statement->execute($substitutions);
@@ -207,21 +214,23 @@ class Database
             $this->handleQueryError();
         }
 
-        return $statement->fetchAll(\PDO::FETCH_ASSOC);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
      * Returns a single result
      *
-     * @param string|\PDOStatement $query The query to execute.
-     * @param Array                $substitutions A list of substitutions to pass along to a prepared statement.
+     * @param string|PDOStatement $query The query to execute.
+     * @param array                $substitutions A list of substitutions to pass along to a prepared statement.
      * @param int                  $db_type The database type to convert result to.
      * @throws InvalidConversionException Exception thrown when failing to convert result into provided $db_type.
+     * @throws DatabaseException
      * @throws ArgumentException Exception thrown when receiving unexpected arguments.
+     * @return mixed
      */
     public function getVar($query, $substitutions = null, $db_type = self::DBTYPE_STRING)
     {
-        if ($query instanceof \PDOStatement) {
+        if ($query instanceof PDOStatement) {
             $statement = $query;
             if (! is_null($substitutions)) {
                 $statement->execute($substitutions);
@@ -235,10 +244,10 @@ class Database
         }
 
         if (false === $statement) {
-            $this->handleQueryError($statement);
+            $this->handleQueryError();
         }
 
-        $result = $statement->fetchAll(\PDO::FETCH_COLUMN);
+        $result = $statement->fetchAll(PDO::FETCH_COLUMN);
 
         if (count($result) > 0) {
             $result = $result[0];
@@ -291,10 +300,11 @@ class Database
      * Inserts data and returns the IDs inserted.
      *
      * @param string  $query The query to execute.
-     * @param Array   $substitutions A list of substitutions.
+     * @param array   $substitutions A list of substitutions.
      *                If $multiple is TRUE $substitutions needs to be a two-dimensional array with substitutions.
      * @param boolean $multiple If there's several inserts being made.
-     * @throws \Exception The exception thrown when failing to insert multiple rows.
+     * @throws Exception The exception thrown when failing to insert multiple rows.
+     * @return array
      */
     public function insert($query, $substitutions = null, $multiple = false)
     {
@@ -312,7 +322,7 @@ class Database
                 }
 
                 $this->connection->commit();
-            } catch (\Exception $ex) {
+            } catch (Exception $ex) {
                 $this->connection->rollback();
                 throw $ex;
             }
@@ -326,20 +336,20 @@ class Database
                 $this->handleQueryError();
             }
 
-            return $this->connection->lastInsertId();
+            return array( $this->connection->lastInsertId() );
         }
 
         if (! $this->connection->exec($query)) {
             $this->handleQueryError();
         }
 
-        return $this->connection->lastInsertId();
+        return array( $this->connection->lastInsertId() );
     }
 
     /**
      * Handles query error throwing.
      *
-     * @throws \Exception Generated exception from PDO information.
+     * @throws DatabaseException Generated exception from PDO information.
      */
     private function handleQueryError()
     {
@@ -355,6 +365,6 @@ class Database
             $error_code = $error_info[1];
         }
 
-        throw new \Exception($error_message, $error_code);
+        throw new DatabaseException($error_message, $error_code);
     }
 }

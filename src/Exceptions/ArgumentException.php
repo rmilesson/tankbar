@@ -2,10 +2,10 @@
 /**
  * ArgumentException
  *
- * @package Database\Exceptions
+ * @package Tankbar\Exceptions
  */
 
-namespace TBDB\Database\Exceptions;
+namespace Tankbar\Exceptions;
 
 use Exception;
 
