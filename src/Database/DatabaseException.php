@@ -2,10 +2,10 @@
 /**
  * DatabaseException
  *
- * @package Tankbar/Exceptions
+ * @package Tankbar\Database
  */
 
-namespace Tankbar\Exceptions;
+namespace Tankbar\Database;
 
 use Exception;
 

@@ -10,10 +10,7 @@ namespace Tankbar\Database;
 use Exception;
 use PDO;
 use PDOStatement;
-use Tankbar\Exceptions\InvalidConversionException;
-use Tankbar\Exceptions\InvalidOptionException;
-use Tankbar\Exceptions\ArgumentException;
-use Tankbar\Exceptions\DatabaseException;
+use Tankbar\ArgumentException;
 
 /**
  * Database
@@ -96,12 +93,13 @@ class Database
     const ERR_INVALID_BOOL_CAST = 'Cannot convert %s to boolean';
     const ERR_INVALID_SERIALIZED_CAST = 'Cannot unserialize %s';
     const ERR_INVALID_JSON_CAST = 'Cannot decode %s';
+    const ERR_UNINITIALIZED = 'Database is not initialized. Did you forget a call to Database::init()?';
 
     /**
      * Initializes the Database class
      *
      * @param array $options The options.
-     * @throws InvalidOptionException Thrown when encountering an invalid or unaccepted option.
+     * @throws InvalidDatabaseOptionException Thrown when encountering an invalid or unaccepted option.
      */
     public static function init($options)
     {
@@ -131,7 +129,7 @@ class Database
 
         foreach ($options as $option_key => $option_value) {
             if (!isset($accepted_options[ $option_key ])) {
-                throw new InvalidOptionException(self::ERR_INVALID_OPTION);
+                throw new InvalidDatabaseOptionException(self::ERR_INVALID_OPTION);
             }
 
             self::$$option_key = $option_value;
@@ -171,6 +169,10 @@ class Database
      */
     private function __construct($driver, $host, $port, $dbname, $charset, $user, $password)
     {
+        if (!is_null($this->connection)) {
+            $this->close();
+        }
+
         $this->connection = new PDO("$driver:host=$host:$port;dbname=$dbname;charset=$charset", $user, $password);
     }
 
@@ -179,10 +181,15 @@ class Database
      *
      * @param string $query The query to prepare.
      * @param array  $driver_options A list of driver options to pass along.
+     * @throws Exception
      * @return PDOStatement
      */
     public function prepare($query, $driver_options = array())
     {
+        if (is_null($this->connection)) {
+            throw new Exception(Database::ERR_UNINITIALIZED);
+        }
+
         return $this->connection->prepare($query, $driver_options);
     }
 
@@ -191,12 +198,17 @@ class Database
      *
      * @param string|PDOStatement $query The query to execute.
      * @param array                $substitutions A list of substitutions to pass along to a prepared statement.
+     * @throws Exception
      * @throws ArgumentException
      * @throws DatabaseException
      * @return array
      */
     public function getResults($query, $substitutions = null)
     {
+        if (is_null($this->connection)) {
+            throw new Exception(Database::ERR_UNINITIALIZED);
+        }
+
         if ($query instanceof PDOStatement) {
             $statement = $query;
             if (!is_null($substitutions)) {
@@ -223,13 +235,18 @@ class Database
      * @param string|PDOStatement $query The query to execute.
      * @param array                $substitutions A list of substitutions to pass along to a prepared statement.
      * @param int                  $db_type The database type to convert result to.
-     * @throws InvalidConversionException Exception thrown when failing to convert result into provided $db_type.
+     * @return mixed
+     *@throws InvalidDatabaseConversionException Exception thrown when failing to convert result into provided $db_type.
      * @throws DatabaseException
      * @throws ArgumentException Exception thrown when receiving unexpected arguments.
-     * @return mixed
+     * @throws Exception
      */
     public function getVar($query, $substitutions = null, $db_type = self::DBTYPE_STRING)
     {
+        if (is_null($this->connection)) {
+            throw new Exception(Database::ERR_UNINITIALIZED);
+        }
+
         if ($query instanceof PDOStatement) {
             $statement = $query;
             if (! is_null($substitutions)) {
@@ -257,7 +274,7 @@ class Database
                 case self::DBTYPE_BOOL:
                     $converted_result = filter_var($result, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
                     if (is_null($converted_result)) {
-                        throw new InvalidConversionException(
+                        throw new InvalidDatabaseConversionException(
                             sprintf(self::ERR_INVALID_BOOL_CAST, $result),
                             self::DBTYPE_BOOL
                         );
@@ -271,7 +288,7 @@ class Database
                 case self::DBTYPE_SERIALIZED:
                     $unserialized_result = @unserialize($result);
                     if (false === $unserialized_result) {
-                        throw new InvalidConversionException(
+                        throw new InvalidDatabaseConversionException(
                             sprintf(self::ERR_INVALID_SERIALIZED_CAST, $result),
                             self::DBTYPE_SERIALIZED
                         );
@@ -281,7 +298,7 @@ class Database
                 case self::DBTYPE_JSON:
                     $decoded_result = json_decode($result);
                     if (is_null($decoded_result)) {
-                        throw new InvalidConversionException(
+                        throw new InvalidDatabaseConversionException(
                             sprintf(self::ERR_INVALID_JSON_CAST, $result),
                             self::DBTYPE_JSON
                         );
@@ -303,11 +320,16 @@ class Database
      * @param array   $substitutions A list of substitutions.
      *                If $multiple is TRUE $substitutions needs to be a two-dimensional array with substitutions.
      * @param boolean $multiple If there's several inserts being made.
+     * @throws Exception
      * @throws Exception The exception thrown when failing to insert multiple rows.
      * @return array
      */
     public function insert($query, $substitutions = null, $multiple = false)
     {
+        if (is_null($this->connection)) {
+            throw new Exception(Database::ERR_UNINITIALIZED);
+        }
+
         if ($multiple && ! is_null($substitutions)) {
             $statement  = $this->prepare($query);
             $insert_ids = array();
@@ -366,5 +388,10 @@ class Database
         }
 
         throw new DatabaseException($error_message, $error_code);
+    }
+
+    public function close()
+    {
+        $this->connection = null;
     }
 }

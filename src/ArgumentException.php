@@ -2,10 +2,10 @@
 /**
  * ArgumentException
  *
- * @package Tankbar\Exceptions
+ * @package Tankbar
  */
 
-namespace Tankbar\Exceptions;
+namespace Tankbar;
 
 use Exception;
 
