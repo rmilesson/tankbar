@@ -15,63 +15,56 @@ use Tankbar\ArgumentException;
 /**
  * Database
  */
-class Database
+final class Database
 {
     /**
      * The driver to use
      *
      * @var string $driver The driver to use.
      */
-    private static $driver = 'mysql';
+    private $driver = 'mysql';
 
     /**
      * The host.
      *
      * @var string $host The host.
      */
-    private static $host = 'localhost';
+    private $host = 'localhost';
 
     /**
      * The port.
      *
      * @var int $port The port.
      */
-    private static $port = 3306;
+    private $port = 3306;
 
     /**
      * The database name to connect to.
      *
      * @var string $dbname The database name to connect to.
      */
-    private static $dbname = '';
+    private $dbname = '';
 
     /**
      * The charset to use.
      *
      * @var string $charset The charset to use.
      */
-    private static $charset = 'utf8';
+    private $charset = 'utf8';
 
     /**
      * The user to connect with.
      *
      * @var string $user The user to connect with.
      */
-    private static $user = '';
+    private $user = '';
 
     /**
      * The password.
      *
      * @var string $password The password.
      */
-    private static $password = '';
-
-    /**
-     * The current instance.
-     *
-     * @var Database $instance The instance.
-     */
-    private static $instance;
+    private $password = '';
 
     /**
      * The current connection.
@@ -96,12 +89,12 @@ class Database
     const ERR_UNINITIALIZED = 'Database is not initialized. Did you forget a call to Database::init()?';
 
     /**
-     * Initializes the Database class
+     * Constructor
      *
      * @param array $options The options.
      * @throws InvalidDatabaseOptionException Thrown when encountering an invalid or unaccepted option.
      */
-    public static function init($options)
+    public function __construct($options)
     {
         $accepted_options = array(
             'driver'   => array(
@@ -132,48 +125,12 @@ class Database
                 throw new InvalidDatabaseOptionException(self::ERR_INVALID_OPTION);
             }
 
-            self::$$option_key = $option_value;
-        }
-    }
-
-    /**
-     * Returns the current instance;
-     */
-    public static function getInstance()
-    {
-        if (is_null(self::$instance)) {
-            self::$instance = new Database(
-                self::$driver,
-                self::$host,
-                self::$port,
-                self::$dbname,
-                self::$charset,
-                self::$user,
-                self::$password
-            );
+            $this->$option_key = $option_value;
         }
 
-        return self::$instance;
-    }
-
-    /**
-     * Constructor
-     *
-     * @param string $driver The driver.
-     * @param string $host The host.
-     * @param int    $port The port.
-     * @param string $dbname The database name.
-     * @param string $charset The charset.
-     * @param string $user The user to connect with.
-     * @param string $password The password to connect with.
-     */
-    private function __construct($driver, $host, $port, $dbname, $charset, $user, $password)
-    {
-        if (!is_null($this->connection)) {
-            $this->close();
-        }
-
-        $this->connection = new PDO("$driver:host=$host:$port;dbname=$dbname;charset=$charset", $user, $password);
+        $this->connection = new PDO(
+            "{$this->driver}:host={$this->host}:{$this->port};dbname={$this->dbname};charset={$this->charset}", $this->user, $this->password
+        );
     }
 
     /**
