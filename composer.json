@@ -1,6 +1,6 @@
 {
     "name": "tankbar/tankbar",
-    "description": "Tankbar PDO database wrapper",
+    "description": "Tankbar utilities",
     "license": "MIT",
     "authors": [
         {
