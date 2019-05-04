@@ -1,6 +1,12 @@
 {
     "name": "tankbar/tankbar",
     "description": "Tankbar PDO database wrapper",
+    "authors": [
+        {
+            "name": "Rasmus Milesson",
+            "email": "rasmus.milesson@tankbar.com"
+        }
+    ],
     "require": {
         "ext-json": "*",
         "ext-pdo": "*"
